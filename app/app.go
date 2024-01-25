@@ -5,6 +5,7 @@ import (
 
 	"github.com/69hunter/hyperledger-besu-assm/core"
 	"github.com/69hunter/hyperledger-besu-assm/localstorage"
+	"github.com/69hunter/hyperledger-besu-assm/rlp"
 	"github.com/69hunter/hyperledger-besu-assm/s3storage"
 )
 
@@ -20,11 +21,6 @@ func (a *Adapter) LambdaHandler(request core.Core) (string, error) {
 	}
 
 	if request.Setup.Total == len(a.localStorage.AllNodesInfo) {
-		// fetch hyperledger besu binary
-		if err := a.localStorage.GetBesu(); err != nil {
-			return "", fmt.Errorf("could not set local hyperledger besu binary err=%w", err)
-		}
-
 		s3Api, err := s3storage.NewAdapter(request.Setup.AWSRegion, request.Setup.S3BucketName)
 		if err != nil {
 			return "", fmt.Errorf("could not create new S3 adapter err=%w", err)
@@ -45,10 +41,14 @@ func (a *Adapter) LambdaHandler(request core.Core) (string, error) {
 		}
 
 		// Create & upload genesis.json file
-		a.localStorage.SetGenesis(request.Genesis)
-		if err := a.localStorage.PopulateGenesisExtraData(); err != nil {
-			return "", fmt.Errorf("could not create genesis extra data err=%w", err)
+		addresses := []string{}
+		for _, nodeInfo := range a.localStorage.AllNodesInfo {
+			addresses = append(addresses, fmt.Sprint(nodeInfo.ValidatorAddress[2:]))
 		}
+		rlp := rlp.NewAdapter()
+		extraData, _ := rlp.EncodeFromAddresses(addresses)
+		request.Genesis.ExtraData = extraData
+		a.localStorage.SetGenesis(request.Genesis)
 
 		if err := a.s3Storage.WriteData("genesis.json", a.localStorage.GetGenesisInJson()); err != nil {
 			return "", fmt.Errorf("could not write genesis.json to S3 err=%w", err)
