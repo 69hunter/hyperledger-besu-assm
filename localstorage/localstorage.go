@@ -23,6 +23,15 @@ func (a *Adapter) AddNodeInfo(nodeInfo core.NodeInfo) error {
 	return nil
 }
 
+func (a *Adapter) CreateBootnodes() ([]string, error) {
+	bootnodes := []string{}
+	for _, nodeInfo := range a.AllNodesInfo {
+		trimmedNodePublicKey := nodeInfo.NodePublicKey[2:]
+		bootnodes = append(bootnodes, fmt.Sprintf("enode://%s@%s:%d", trimmedNodePublicKey, nodeInfo.NodeHost, nodeInfo.NodePort))
+	}
+	return bootnodes, nil
+}
+
 func (a *Adapter) SetConfigToml(config core.ConfigToml) {
 	a.configToml = config
 }

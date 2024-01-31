@@ -28,11 +28,7 @@ func (a *Adapter) LambdaHandler(request core.Core) (string, error) {
 		a.s3Storage = s3Api
 
 		// Create & upload config.toml file
-		bootnodes := []string{}
-		for _, nodeInfo := range a.localStorage.AllNodesInfo {
-			bootnodes = append(bootnodes, fmt.Sprintf("enode://%s@%s:%d", nodeInfo.NodePublicKey, nodeInfo.NodeHost, nodeInfo.NodePort))
-		}
-
+		bootnodes, _ := a.localStorage.CreateBootnodes()
 		request.ConfigToml.BootNodes = bootnodes
 		a.localStorage.SetConfigToml(request.ConfigToml)
 
